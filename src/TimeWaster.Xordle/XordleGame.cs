@@ -137,7 +137,7 @@ namespace TimeWaster.Xordle
                         ErrorBeep();
                         return;
                     }
-                    Console.Write($"[{board.RemainingWordCount}] Guess {guess.ToUpper()}. CPA? ");
+                    Console.Write($"[{board.RemainingWordCount.ToString().PadLeft(board.OriginalWordCount.ToString().Length)}] Guess {guess.ToUpper()}. CPA? ");
                     cpa = ReadCPAInput();
                 }
 

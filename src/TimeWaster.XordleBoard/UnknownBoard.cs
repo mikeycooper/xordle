@@ -13,6 +13,7 @@ namespace TimeWaster.XordleBoard
         public int Id { get; set; }
         public int GuessCount => Guesses.Count;
         public int RemainingWordCount => remainingWords.Count;
+        public int OriginalWordCount => originalWords.Count;
         public bool HasPendingGuesses => Guesses.Any(g => string.IsNullOrWhiteSpace(g.Result));
         public bool IsBroken => !IsSolved && remainingWords.Count == 0;
         public override bool IsTerminal => base.IsTerminal || this.IsBroken;
