@@ -11,7 +11,7 @@ namespace TimeWaster.Xordle
 
             var sw = Stopwatch.StartNew();
             //Showdown.Fight(10000);
-            XordleGame.Octordle(args);
+            XordleGame.Xordle(args);
             sw.Stop();
             Console.WriteLine($"Completed in {sw.ElapsedMilliseconds/1000}s");
         }

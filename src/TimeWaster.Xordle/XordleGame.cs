@@ -10,14 +10,15 @@ namespace TimeWaster.Xordle
     public class XordleGame
     {
         private const string boardToken = ":board ";
+        private static XordleOptions options;
 
-        public static void Octordle(string[] args)
+        public static void Xordle(string[] args)
         {
             var words = new List<string>(File.ReadAllLines(
                 Path.Combine(
                     Path.GetDirectoryName(Assembly.GetEntryAssembly().Location), 
                     "Octordle.wordlist")));
-            var options = ProcessCmdArgs(args);
+            options = ProcessCmdArgs(args);
 
             if (options.BoardCount == 0)
             {
@@ -38,8 +39,11 @@ namespace TimeWaster.Xordle
             {
                 if (boards.All(b => b.IsTerminal)) return;
 
-                // Play the first non-terminal board
-                var board = boards.Where(b => !b.IsTerminal).First();
+                var board =
+                    // If AutoAdvance is enabled, play the first non-terminal board with pending guesses, if any
+                    boards.Where(b => options.AutoAdvance && !b.IsTerminal && b.HasPendingGuesses).FirstOrDefault()
+                    // If no boards have pending guesses or autoadvance is disabled, just play the first non-terminal board
+                    ?? boards.Where(b => !b.IsTerminal).First();
 
                 Play(boards.ToList(), board);
             }
@@ -195,6 +199,13 @@ namespace TimeWaster.Xordle
                     {
                         otherBoard.AddGuess(guess);
                     }
+
+                    if (ShouldAdvance(board, otherBoards))
+                    {
+                        // Auto-advance for pending guesses if we're done with them on this board
+                        AdvanceBeep();
+                        return;
+                    }
                 }
                 catch (BrokenBoardException)
                 {
@@ -207,6 +218,17 @@ namespace TimeWaster.Xordle
                     //ProcessShortCircuit(board, otherBoards);
                 }
             }
+        }
+
+        private static bool ShouldAdvance(UnknownBoard board, IEnumerable<UnknownBoard> otherBoards)
+        {
+            // If auto-advance is disabled, always return false
+            if (!options.AutoAdvance) return false;
+
+            return !board.IsSolved
+                && board.RemainingWordCount > 1
+                && !board.HasPendingGuesses
+                && otherBoards.Any(b => b.HasPendingGuesses);
         }
 
         private static void ProcessShortCircuit(UnknownBoard board, IEnumerable<UnknownBoard> otherBoards)
@@ -273,7 +295,8 @@ namespace TimeWaster.Xordle
             var options = new XordleOptions
             {
                 AddManualGuesses = args.Contains("-addguesses", StringComparer.OrdinalIgnoreCase),
-                AllowNonWordGuesses = args.Contains("-nonwords", StringComparer.OrdinalIgnoreCase)
+                AllowNonWordGuesses = args.Contains("-nonwords", StringComparer.OrdinalIgnoreCase),
+                AutoAdvance = !args.Contains("-noAutoAdvance")
             };
 
             var boardsArg = args.FirstOrDefault(a => a.IndexOf("-boards=") == 0);
@@ -287,12 +310,18 @@ namespace TimeWaster.Xordle
         private static void ErrorBeep() => Console.Beep(150, 500);
         private static void WarningBeep() => Console.Beep(300, 500);
         private static void SuccessBeep() => Console.Beep(1000, 500);
+        private static void AdvanceBeep()
+        {
+            Console.Beep(1100, 200);
+            Console.Beep(1200, 200);
+        }
 
         private class XordleOptions
         {
             public int BoardCount { get; set; }
             public bool AddManualGuesses { get; set; }
             public bool AllowNonWordGuesses { get; set; }
+            public bool AutoAdvance { get; set; }
         }
     }
 }
