@@ -212,11 +212,6 @@ namespace TimeWaster.Xordle
                     Console.WriteLine("Broken board, invalid CPA discarded.");
                     ErrorBeep();
                 }
-
-                if (board.RemainingWordCount <= 5 && board.RemainingWordCount > 1 && board.HasPendingGuesses)
-                {
-                    //ProcessShortCircuit(board, otherBoards);
-                }
             }
         }
 
@@ -229,33 +224,6 @@ namespace TimeWaster.Xordle
                 && board.RemainingWordCount > 1
                 && !board.HasPendingGuesses
                 && otherBoards.Any(b => b.HasPendingGuesses);
-        }
-
-        private static void ProcessShortCircuit(UnknownBoard board, IEnumerable<UnknownBoard> otherBoards)
-        {
-            var words = board.GetWords();
-            Console.Write($"SHORT CIRCUIT: {string.Join("  ", words)}? ");
-            WarningBeep();
-
-            while (true)
-            {
-                var input = Console.ReadLine().ToLower();
-                if (input == "") break; // Blank just goes back to guesses
-
-                if (words.Contains(input))
-                {
-                    board.ClearPendingGuesses();
-
-                    board.AddGuess(input);
-                    foreach (var otherBoard in otherBoards) otherBoard.AddGuess(input);
-
-                    break;
-                }
-
-                // If we got this far, we have an invalid input
-                Console.Write($"\"{input}\" is not in the word list. {string.Join("  ", words)}? ");
-                ErrorBeep();
-            }
         }
 
         private static string ReadCPAInput()
