@@ -1,23 +1,23 @@
 using System;
 using System.Collections.Generic;
-using System.Reflection;
 using System.IO;
 using System.Linq;
+using System.Reflection;
+using System.Text.Json;
 using TimeWaster.XordleBoard;
 
 namespace TimeWaster.Xordle
 {
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>")]
     public class XordleGame
     {
-        private const string boardToken = ":board ";
+        private const string commandToken = ":command:";
         private static XordleOptions options;
+        private static List<UnknownBoard> allBoards;
 
         public static void Xordle(string[] args)
         {
-            var words = new List<string>(File.ReadAllLines(
-                Path.Combine(
-                    Path.GetDirectoryName(Assembly.GetEntryAssembly().Location), 
-                    "Octordle.wordlist")));
+            var words = GetWordList();
             options = ProcessCmdArgs(args);
 
             if (options.BoardCount == 0)
@@ -26,26 +26,28 @@ namespace TimeWaster.Xordle
                 var input = Console.ReadLine();
                 options.BoardCount = int.Parse(input == "" ? "8" : input);
             }
-            var boards = new List<UnknownBoard>(options.BoardCount);
+            allBoards = new List<UnknownBoard>(options.BoardCount);
 
             for (int i = 0; i < options.BoardCount; i++)
             {
-                boards.Add(new UnknownBoard(i+1, words));
+                allBoards.Add(new UnknownBoard(i+1, words));
             }
 
-            AddInitialGuesses(options, words, boards);
+            AddInitialGuesses(options, words, allBoards);
 
             while (true)
             {
-                if (boards.All(b => b.IsTerminal)) return;
+                if (allBoards.All(b => b.IsTerminal)) return;
+
+                var remainingBoards = allBoards.Where(b => !b.IsTerminal).ToList();
 
                 var board =
                     // If AutoAdvance is enabled, play the first non-terminal board with pending guesses, if any
-                    boards.Where(b => options.AutoAdvance && !b.IsTerminal && b.HasPendingGuesses).FirstOrDefault()
+                    remainingBoards.Where(b => options.AutoAdvance && b.HasPendingGuesses).FirstOrDefault()
                     // If no boards have pending guesses or autoadvance is disabled, just play the first non-terminal board
-                    ?? boards.Where(b => !b.IsTerminal).First();
+                    ?? remainingBoards.Where(b => !b.IsTerminal).First();
 
-                Play(boards.ToList(), board);
+                Play(remainingBoards, board);
             }
         }
 
@@ -82,10 +84,10 @@ namespace TimeWaster.Xordle
             }
         }
 
-        static void Play(List<UnknownBoard> allBoards, UnknownBoard board)
+        static void Play(List<UnknownBoard> remainingBoards, UnknownBoard board)
         {
-            // Keep track of guesses on all other boards besides the current one
-            var otherBoards = allBoards.Where(b => b != board).ToList();
+            // Keep track of guesses on all remaining boards besides the current one
+            var otherBoards = remainingBoards.Where(b => b != board).ToList();
 
             Console.WriteLine();
             Console.WriteLine($"\t\t[BOARD {board.Id}]");
@@ -148,46 +150,69 @@ namespace TimeWaster.Xordle
                 // User can hit enter to get a different random guess
                 if (cpa == string.Empty) continue;
 
-                if (cpa == $"{boardToken}:n")
+                if (cpa == $"{commandToken}:n")
                 {
-                    // Move to the next live board
+                    // Move to the next remaining board
                     Console.WriteLine();
-                    var liveBoards = allBoards.Where(b => !b.IsTerminal).ToList();
-                    if (liveBoards.IndexOf(board) + 1 >= liveBoards.Count)
+                  if (remainingBoards.IndexOf(board) + 1 >= remainingBoards.Count)
                     {
-                        // If we're at the last board, play the first live board
-                        Play(allBoards, liveBoards[0]);
+                        // If we're at the last board, play the first remaining board
+                        Play(remainingBoards, remainingBoards[0]);
                         return;
                     }
                     else
                     {
                         // Otherwise, play the next board
-                        Play(allBoards, liveBoards[liveBoards.IndexOf(board) + 1]);
+                        Play(remainingBoards, remainingBoards[remainingBoards.IndexOf(board) + 1]);
                         return;
                     }
                 }
 
-                if (cpa == $"{boardToken}:p")
+                if (cpa == $"{commandToken}:p")
                 {
-                    // Move to the previous live board
-                    var liveBoards = allBoards.Where(b => !b.IsTerminal).ToList();
-                    if (liveBoards.IndexOf(board) <= 0)
+                    // Move to the previous remaining board
+                    if (remainingBoards.IndexOf(board) <= 0)
                     {
                         // If we're at the first board, play the last live board
-                        Play(allBoards, liveBoards[liveBoards.Count - 1]);
+                        Play(remainingBoards, remainingBoards[remainingBoards.Count - 1]);
                         return;
                     }
                     else
                     {
                         // Otherwise, play the previous board
-                        Play(allBoards, liveBoards[liveBoards.IndexOf(board) - 1]);
+                        Play(remainingBoards, remainingBoards[remainingBoards.IndexOf(board) - 1]);
                         return;
                     }
                 }
 
-                if (cpa == $"{boardToken}:rr")
+                if (cpa == $"{commandToken}:rr")
                 {
                     board.ResetBoard();
+                    return;
+                }
+
+                if (cpa == $"{commandToken}:ss")
+                {
+                    string path = $"{Environment.CurrentDirectory}\\saved-octordle.txt";
+                    var payload = allBoards.Select(b => b.ToDto());
+                    var options = new JsonSerializerOptions { WriteIndented = true };
+                    File.WriteAllText(
+                        path,
+                        JsonSerializer.Serialize(payload, options));
+                    Console.WriteLine($"Game saved to {path}");
+                    SuccessBeep();
+                    return;
+                }
+
+                if (cpa == $"{commandToken}:ll")
+                {
+                    string path = $"{Environment.CurrentDirectory}\\saved-octordle.txt";
+                    var dtos = JsonSerializer.Deserialize<List<UnknownBoardSaveDto>>(File.ReadAllText(path));
+
+                    allBoards = RegenerateBoardsFromSave(dtos);
+
+                    Console.WriteLine($"Game loaded from {path}");
+                    SuccessBeep();
                     return;
                 }
 
@@ -215,6 +240,26 @@ namespace TimeWaster.Xordle
             }
         }
 
+        private static List<UnknownBoard> RegenerateBoardsFromSave(List<UnknownBoardSaveDto> dtos)
+        {
+            var boards = new List<UnknownBoard>(dtos.Count);
+            foreach (var dto in dtos)
+            {
+                var board = new UnknownBoard(dto.Id, GetWordList());
+                foreach (var guess in dto.Guesses)
+                {
+                    board.AddGuess(guess.Word);
+                    if (!string.IsNullOrWhiteSpace(guess.Result))
+                    {
+                        board.UpdateResult(guess.Word, guess.Result);
+                    }
+                }
+                boards.Add(board);
+            }
+
+            return boards;
+        }
+
         private static bool ShouldAdvance(UnknownBoard board, IEnumerable<UnknownBoard> otherBoards)
         {
             // If auto-advance is disabled, always return false
@@ -233,9 +278,11 @@ namespace TimeWaster.Xordle
                 var response = Console.ReadLine();
 
                 // p and n go to previous and next boards
-                if (response.Equals("p", StringComparison.OrdinalIgnoreCase)) return $"{boardToken}:p";
-                if (response.Equals("n", StringComparison.OrdinalIgnoreCase)) return $"{boardToken}:n";
-                if (response.Equals("rr", StringComparison.OrdinalIgnoreCase)) return $"{boardToken}:rr";
+                if (response.Equals("p", StringComparison.OrdinalIgnoreCase)) return $"{commandToken}:p";
+                if (response.Equals("n", StringComparison.OrdinalIgnoreCase)) return $"{commandToken}:n";
+                if (response.Equals("rr", StringComparison.OrdinalIgnoreCase)) return $"{commandToken}:rr";
+                if (response.Equals("ss", StringComparison.OrdinalIgnoreCase)) return $"{commandToken}:ss";
+                if (response.Equals("ll", StringComparison.OrdinalIgnoreCase)) return $"{commandToken}:ll";
 
                 // User can hit enter to get a different guess
                 if (response == string.Empty) return string.Empty;
@@ -275,9 +322,18 @@ namespace TimeWaster.Xordle
             return options;
         }
 
+        private static List<string> GetWordList() => new(
+            File.ReadAllLines(
+                Path.Combine(
+                    Path.GetDirectoryName(Assembly.GetEntryAssembly().Location),
+                    "Octordle.wordlist")));
+
         private static void ErrorBeep() => Console.Beep(150, 500);
+
         private static void WarningBeep() => Console.Beep(300, 500);
+
         private static void SuccessBeep() => Console.Beep(1000, 500);
+
         private static void AdvanceBeep()
         {
             Console.Beep(1100, 200);

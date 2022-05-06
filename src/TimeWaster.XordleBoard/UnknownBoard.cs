@@ -18,6 +18,8 @@ namespace TimeWaster.XordleBoard
         public bool IsBroken => !IsSolved && remainingWords.Count == 0;
         public override bool IsTerminal => base.IsTerminal || this.IsBroken;
 
+        public UnknownBoard() {}
+
         public UnknownBoard(int id, IEnumerable<string> words) 
         {
             this.Id = id;
@@ -164,6 +166,12 @@ namespace TimeWaster.XordleBoard
 
             return regex;
         }
+
+        public UnknownBoardSaveDto ToDto() => new UnknownBoardSaveDto
+        {
+            Id = this.Id,
+            Guesses = Guesses
+        };
 
         private string GetPresentCharacters(string guess, string result)
         {
