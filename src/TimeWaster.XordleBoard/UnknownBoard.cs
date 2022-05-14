@@ -100,10 +100,10 @@ namespace TimeWaster.XordleBoard
                 var wordsToRemove = new List<string>();
                 foreach (var word in wordList)
                 {
-                    var stripped = StripWord(word, cpa);
-                    foreach (var presentCharacter in presentCharacters)
+                    var stripped = StripWordOfCorrects(word, cpa);
+                    foreach (var presentCharacter in presentCharacters.GroupBy(p => p))
                     {
-                        if (!stripped.Contains(presentCharacter))
+                        if (!(stripped.Where(c => c == presentCharacter.Key).Count() >= presentCharacter.Count()))
                         {
                             wordsToRemove.Add(word);
                             break;
@@ -114,7 +114,7 @@ namespace TimeWaster.XordleBoard
             }
         }
 
-        private string StripWord(string word, string cpa)
+        private string StripWordOfCorrects(string word, string cpa)
         {
             cpa = cpa.ToUpper();
 

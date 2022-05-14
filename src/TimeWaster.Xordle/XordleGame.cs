@@ -1,7 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
+using System.Diagnostics;
 using System.Reflection;
 using System.Text.Json;
 using TimeWaster.XordleBoard;
@@ -14,12 +11,24 @@ namespace TimeWaster.Xordle
         private const string commandToken = ":command:";
         private static XordleOptions options;
         private static List<UnknownBoard> allBoards;
+        private static Stopwatch sw = new Stopwatch();
 
         public static void Xordle(string[] args)
         {
             var words = GetWordList();
             options = ProcessCmdArgs(args);
 
+            while (true)
+            {
+                Start(words);
+                Console.WriteLine($"Completed in {sw.ElapsedMilliseconds / 1000}s");
+                sw.Reset();
+                if (!options.EndlessPlay) return;
+            }
+        }
+
+        private static void Start(List<string> words)
+        {
             if (options.BoardCount == 0)
             {
                 Console.Write("How many boards [8]? ");
@@ -30,11 +39,10 @@ namespace TimeWaster.Xordle
 
             for (int i = 0; i < options.BoardCount; i++)
             {
-                allBoards.Add(new UnknownBoard(i+1, words));
+                allBoards.Add(new UnknownBoard(i + 1, words));
             }
 
             AddInitialGuesses(options, words, allBoards);
-
             while (true)
             {
                 if (allBoards.All(b => b.IsTerminal)) return;
@@ -47,7 +55,7 @@ namespace TimeWaster.Xordle
                     // If no boards have pending guesses or autoadvance is disabled, just play the first non-terminal board
                     ?? remainingBoards.Where(b => !b.IsTerminal).First();
 
-                Play(remainingBoards, board);
+                PlayBoards(remainingBoards, board);
             }
         }
 
@@ -84,7 +92,7 @@ namespace TimeWaster.Xordle
             }
         }
 
-        static void Play(List<UnknownBoard> remainingBoards, UnknownBoard board)
+        static void PlayBoards(List<UnknownBoard> remainingBoards, UnknownBoard board)
         {
             // Keep track of guesses on all remaining boards besides the current one
             var otherBoards = remainingBoards.Where(b => b != board).ToList();
@@ -154,16 +162,16 @@ namespace TimeWaster.Xordle
                 {
                     // Move to the next remaining board
                     Console.WriteLine();
-                  if (remainingBoards.IndexOf(board) + 1 >= remainingBoards.Count)
+                    if (remainingBoards.IndexOf(board) + 1 >= remainingBoards.Count)
                     {
                         // If we're at the last board, play the first remaining board
-                        Play(remainingBoards, remainingBoards[0]);
+                        PlayBoards(remainingBoards, remainingBoards[0]);
                         return;
                     }
                     else
                     {
                         // Otherwise, play the next board
-                        Play(remainingBoards, remainingBoards[remainingBoards.IndexOf(board) + 1]);
+                        PlayBoards(remainingBoards, remainingBoards[remainingBoards.IndexOf(board) + 1]);
                         return;
                     }
                 }
@@ -174,13 +182,13 @@ namespace TimeWaster.Xordle
                     if (remainingBoards.IndexOf(board) <= 0)
                     {
                         // If we're at the first board, play the last live board
-                        Play(remainingBoards, remainingBoards[remainingBoards.Count - 1]);
+                        PlayBoards(remainingBoards, remainingBoards[remainingBoards.Count - 1]);
                         return;
                     }
                     else
                     {
                         // Otherwise, play the previous board
-                        Play(remainingBoards, remainingBoards[remainingBoards.IndexOf(board) - 1]);
+                        PlayBoards(remainingBoards, remainingBoards[remainingBoards.IndexOf(board) - 1]);
                         return;
                     }
                 }
@@ -218,6 +226,7 @@ namespace TimeWaster.Xordle
 
                 try
                 {
+                    sw.Start();
                     board.UpdateResult(guess, cpa);
 
                     foreach (var otherBoard in otherBoards)
@@ -311,7 +320,8 @@ namespace TimeWaster.Xordle
             {
                 AddManualGuesses = args.Contains("-addguesses", StringComparer.OrdinalIgnoreCase),
                 AllowNonWordGuesses = args.Contains("-nonwords", StringComparer.OrdinalIgnoreCase),
-                AutoAdvance = !args.Contains("-noAutoAdvance")
+                AutoAdvance = !args.Contains("-noAutoAdvance"),
+                EndlessPlay = args.Contains("-endless", StringComparer.OrdinalIgnoreCase)
             };
 
             var boardsArg = args.FirstOrDefault(a => a.IndexOf("-boards=") == 0);
@@ -346,6 +356,7 @@ namespace TimeWaster.Xordle
             public bool AddManualGuesses { get; set; }
             public bool AllowNonWordGuesses { get; set; }
             public bool AutoAdvance { get; set; }
+            public bool EndlessPlay { get; set; }
         }
     }
 }
