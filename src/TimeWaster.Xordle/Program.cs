@@ -3,4 +3,5 @@
 Console.WriteLine();
 
 //Showdown.Fight(10000);
-XordleGame.Xordle(args);
+//XordleSolver.Solve(args);
+XordleGame.Play();

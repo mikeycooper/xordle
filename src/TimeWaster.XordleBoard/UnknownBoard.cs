@@ -8,8 +8,8 @@ namespace TimeWaster.XordleBoard
     public class UnknownBoard : Board
     {
         private List<string> remainingWords;
-        private List<string> originalWords;
-        private Random rand = new Random();
+        private readonly List<string> originalWords;
+        private readonly Random rand = new();
         public int Id { get; set; }
         public int GuessCount => Guesses.Count;
         public int RemainingWordCount => remainingWords.Count;
