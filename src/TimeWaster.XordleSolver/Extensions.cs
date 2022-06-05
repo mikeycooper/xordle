@@ -1,6 +1,6 @@
 ﻿using TimeWaster.XordleBoard;
 
-namespace TimeWaster.Xordle;
+namespace TimeWaster.XordleSolver;
 
 internal static class Extensions
 {
