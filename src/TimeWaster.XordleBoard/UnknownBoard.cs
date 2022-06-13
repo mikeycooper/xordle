@@ -92,7 +92,7 @@ namespace TimeWaster.XordleBoard
             remainingWords = originalWords;
         }
 
-        private void RemoveWordsMissingPresent(List<string> wordList, string guess, string cpa)
+        private static void RemoveWordsMissingPresent(List<string> wordList, string guess, string cpa)
         {
             var presentCharacters = GetPresentCharacters(guess, cpa);
             if (presentCharacters.Length > 0)
@@ -114,7 +114,7 @@ namespace TimeWaster.XordleBoard
             }
         }
 
-        private string StripWordOfCorrects(string word, string cpa)
+        private static string StripWordOfCorrects(string word, string cpa)
         {
             cpa = cpa.ToUpper();
 
@@ -128,7 +128,7 @@ namespace TimeWaster.XordleBoard
             return stripped;
         }
 
-        private string GetRegexPattern(string guess, string result)
+        private static string GetRegexPattern(string guess, string result)
         {
             if (guess.Length != 5 || result.Length != 5) throw new ArgumentException("Guess and result must both be 5 characters");
 
@@ -167,13 +167,13 @@ namespace TimeWaster.XordleBoard
             return regex;
         }
 
-        public UnknownBoardSaveDto ToDto() => new UnknownBoardSaveDto
+        public UnknownBoardSaveDto ToDto() => new()
         {
             Id = this.Id,
             Guesses = Guesses
         };
 
-        private string GetPresentCharacters(string guess, string result)
+        private static string GetPresentCharacters(string guess, string result)
         {
             if (guess.Length != 5 || result.Length != 5) throw new ArgumentException("Guess and result must both be 5 characters");
 

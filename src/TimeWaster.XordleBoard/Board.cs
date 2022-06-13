@@ -5,7 +5,7 @@ namespace TimeWaster.XordleBoard
 {
     public abstract class Board
     {
-        protected List<Guess> Guesses = new List<Guess>();
+        protected List<Guess> Guesses = new();
 
         public bool IsSolved => Guesses.Any(g => g.IsSolved);
 

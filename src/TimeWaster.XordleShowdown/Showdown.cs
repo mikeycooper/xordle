@@ -74,8 +74,6 @@ public static class Showdown
 
         Console.WriteLine(string.Join("  ", startingWords));
 
-        //Console.WriteLine($"Unsolved words: {string.Join("  ", group.OrderBy(g => g.Count()).Select(g => $"{g.Key}({g.Count()})"))}");
-
         Console.WriteLine();
         foreach (var grouping in stats.GroupBy(s => s).OrderBy(g => g.Key))
         {

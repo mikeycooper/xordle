@@ -1,6 +1,5 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Linq;
-using TimeWaster.XordleBoard;
 
 namespace TimeWaster.XordleBoard.Tests
 {

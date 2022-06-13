@@ -9,16 +9,8 @@ public static class Evaluate
     public static void EvaluateDictionary()
     {
         var words = GetWordList();
-        Dictionary<string, int> results = new Dictionary<string, int>(words.Count);
-        ///////////////////
-        
-        foreach (char c in "abcdefghijklmnopqrstuvwxyz")
-        {
-            Console.WriteLine($"{c},{words.Count(w => w.Contains(c, StringComparison.OrdinalIgnoreCase))}");
-        }
-        return;
+        Dictionary<string, int> results = new(words.Count);
 
-        ///////////////////
         foreach (var word in words.Select(w => w.ToUpper()))
         {
             var solves = EvaluateWord(word, words);

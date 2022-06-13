@@ -6,15 +6,13 @@ namespace TimeWaster.XordleGame;
 
 public static class Game
 {
-    private static List<string> words = GetWordList();
-    private static KnownBoard board;
-    private static List<Guess> guesses = new();
-    private static List<char> characters = new();
-
+    private static readonly List<string> words = GetWordList();
+    
     public static void Play()
     {
-        board = new KnownBoard(words[RandomNumberGenerator.GetInt32(words.Count)]);
-        characters = new List<char>("ABCDEFGHIJKLMNOPQRSTUVWXYZ".ToCharArray());
+        var board = new KnownBoard(words[RandomNumberGenerator.GetInt32(words.Count)]);
+        var characters = new List<char>("ABCDEFGHIJKLMNOPQRSTUVWXYZ".ToCharArray());
+        var guesses = new List<Guess>();
 
         while (true)
         {

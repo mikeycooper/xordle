@@ -22,6 +22,6 @@ namespace TimeWaster.XordleBoard
             Result = result;
         }
 
-        public bool IsSolved { get => Result == "CCCCC"; }
+        public bool IsSolved => Result == "CCCCC";
     }
 }

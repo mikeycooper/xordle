@@ -45,7 +45,7 @@ namespace TimeWaster.XordleBoard
             return new string(results.OrderBy(r => r.Position).Select(r => r.Result).ToArray());
         }
 
-        private List<CharacterResult> ToCharacterResults(string guess)
+        private static List<CharacterResult> ToCharacterResults(string guess)
         {
             var results = new List<CharacterResult>();
             for (int i = 0; i < guess.Length; i++)
